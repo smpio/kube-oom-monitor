@@ -58,7 +58,7 @@ func main() {
 
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%v.%x", *nodeName, t.UnixNano()),
+				Name:      fmt.Sprintf("%v.%x", *nodeName, oom.Pid),
 				Namespace: metav1.NamespaceDefault,
 			},
 			InvolvedObject: v1.ObjectReference{
