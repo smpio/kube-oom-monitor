@@ -58,7 +58,7 @@ func main() {
 
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%v.%x", nodeName, t.UnixNano()),
+				Name:      fmt.Sprintf("%v.%x", *nodeName, t.UnixNano()),
 				Namespace: metav1.NamespaceDefault,
 			},
 			InvolvedObject: v1.ObjectReference{
@@ -71,9 +71,13 @@ func main() {
 			LastTimestamp:  t,
 			Count:          1,
 			Type:           "Warning",
+			Source: v1.EventSource{
+				Component: "kube-oom-monitor",
+				Host:      *nodeName,
+			},
 		}
 
-		event, err = clientset.CoreV1().Events("").Create(context.TODO(), event, metav1.CreateOptions{})
+		event, err = clientset.CoreV1().Events(metav1.NamespaceDefault).Create(context.TODO(), event, metav1.CreateOptions{})
 		if err != nil {
 			klog.Errorf("Unable to write event: '%v'", err)
 		}
