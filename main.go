@@ -19,8 +19,9 @@ import (
 )
 
 func main() {
-	flagset := flag.CommandLine
+	startedAt := time.Now()
 
+	flagset := flag.CommandLine
 	masterURL := flagset.String("master", "", "kubernetes api server url")
 	kubeconfigPath := flagset.String("kubeconfig", "", "path to kubeconfig file")
 	nodeName := flagset.String("nodeName", "", "name of the node to bind events")
@@ -67,6 +68,11 @@ func main() {
 		klog.Infof("OOM: %+v", oom)
 		t := metav1.Time{Time: oom.TimeOfDeath.Add(*clockDrift)}
 		klog.Infof("Calibrated time: %v", t.Time)
+
+		if t.Time.Before(startedAt) {
+			klog.Infof("Skipping this old event")
+			continue
+		}
 
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
