@@ -74,6 +74,11 @@ func main() {
 			continue
 		}
 
+		now := time.Now()
+		klog.Infof("Current time: %v", now)
+		// https://github.com/smpio/kube-oom-monitor/issues/1
+		t.Time = now
+
 		event := &v1.Event{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%v.%x", *nodeName, oom.Pid),
