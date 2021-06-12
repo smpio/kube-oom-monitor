@@ -3,6 +3,7 @@ module github.com/smpio/kube-oom-monitor
 go 1.16
 
 require (
+	github.com/euank/go-kmsg-parser v2.0.0+incompatible
 	github.com/google/cadvisor v0.39.2
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
