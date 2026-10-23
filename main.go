@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/euank/go-kmsg-parser/kmsgparser"
-	"github.com/google/cadvisor/utils/oomparser"
+	"github.com/smpio/kube-oom-monitor/internal/oomparser"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -54,14 +54,17 @@ func main() {
 	}
 	klog.Infof("Clock drift: %v", clockDrift)
 
-	outStream := make(chan *oomparser.OomInstance)
-	oomLog, err := oomparser.New()
+	outStream := make(chan *oomparser.Instance)
+	parser, err := kmsgparser.NewParser()
 	if err != nil {
 		klog.Fatalf("Couldn't make a new oomparser. %v", err)
 		return
 	}
 
-	go oomLog.StreamOoms(outStream)
+	go func() {
+		defer parser.Close()
+		streamOoms(parser.Parse(), outStream)
+	}()
 	klog.Infoln("Reading the OOM stream")
 
 	for oom := range outStream {
@@ -107,7 +110,17 @@ func main() {
 	}
 }
 
-func formatMessage(oom *oomparser.OomInstance) string {
+func streamOoms(messages <-chan kmsgparser.Message, events chan<- *oomparser.Instance) {
+	defer close(events)
+	parser := &oomparser.Parser{}
+	for message := range messages {
+		if oom := parser.Parse(message.Message, message.Timestamp); oom != nil {
+			events <- oom
+		}
+	}
+}
+
+func formatMessage(oom *oomparser.Instance) string {
 	return fmt.Sprintf("pid:%v\nproc:%v\ntaskcg:%v\noomcg:%v",
 		oom.Pid, oom.ProcessName, oom.ContainerName, oom.VictimContainerName)
 }
