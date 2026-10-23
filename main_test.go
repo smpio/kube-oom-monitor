@@ -21,7 +21,8 @@ func TestGlobalOOMStreamPreservesCgroupInNodeOOMMessage(t *testing.T) {
 		"oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=" + cgroup + ",task=worker,pid=12345,uid=1000",
 		"Out of memory: Killed process 12345 (worker)",
 	} {
-		messages <- kmsgparser.Message{Message: line, Timestamp: when}
+		// go-kmsg-parser preserves the real /dev/kmsg record's trailing newline.
+		messages <- kmsgparser.Message{Message: line + "\n", Timestamp: when}
 	}
 	close(messages)
 	events := make(chan *oomparser.Instance, 3)

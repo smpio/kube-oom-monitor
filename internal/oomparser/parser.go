@@ -36,6 +36,8 @@ type Parser struct {
 // Parse returns an instance once per report. The later "Killed process" line
 // must not produce a second event after a modern summary has been emitted.
 func (p *Parser) Parse(message string, timestamp time.Time) *Instance {
+	// go-kmsg-parser retains record terminators; Go's $ anchor requires EOF.
+	message = strings.TrimRight(message, "\r\n")
 	if match := summaryPattern.FindStringSubmatch(message); match != nil {
 		pid, err := strconv.Atoi(match[6])
 		if err != nil {

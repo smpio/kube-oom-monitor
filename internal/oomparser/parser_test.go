@@ -82,3 +82,32 @@ func TestMalformedAndUnrelatedMessages(t *testing.T) {
 		}
 	}
 }
+
+func TestKernelRecordTerminators(t *testing.T) {
+	when := time.Unix(1700000000, 123)
+	cgroup := "/kubepods.slice/kubepods-pod123.slice/cri-containerd-456.scope"
+	for _, ending := range []string{"\n", "\r\n"} {
+		for _, header := range []bool{false, true} {
+			for _, global := range []bool{false, true} {
+				t.Run(fmt.Sprintf("ending=%q/header=%v/global=%v", ending, header, global), func(t *testing.T) {
+					parser := &Parser{}
+					if header {
+						parser.Parse("worker invoked oom-killer: gfp_mask=0x0"+ending, when)
+					}
+					limit, wantLimit := "oom_memcg=/limit", "/limit"
+					if global {
+						limit, wantLimit = "global_oom", "/"
+					}
+					line := "oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0," + limit + ",task_memcg=" + cgroup + ",task=worker,pid=12345,uid=1000"
+					oom := parser.Parse(line+ending, when)
+					if oom == nil || oom.ContainerName != cgroup || oom.VictimContainerName != wantLimit || oom.Pid != 12345 {
+						t.Fatalf("terminated summary lost its cgroups: %+v", oom)
+					}
+					if duplicate := parser.Parse("Out of memory: Killed process 12345 (worker)"+ending, when); duplicate != nil {
+						t.Fatalf("unexpected fallback event: %+v", duplicate)
+					}
+				})
+			}
+		}
+	}
+}
